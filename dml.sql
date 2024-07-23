@@ -1,3 +1,75 @@
+-- USAR ESTO SOLO SI LA DB ES LOCAL
+
+DROP DATABASE IF exists campusbike;
+CREATE DATABASE campusbike;
+use campusbike;
+
+-- DE AQUI PARA ABAJO ES LA BASE DE DATOS RAILWAY
+
+CREATE TABLE paises(
+    idPais VARCHAR(3),
+    nombre VARCHAR(30),
+    CONSTRAINT pk_idPais PRIMARY KEY(idPais)
+);
+
+CREATE TABLE ciudades(
+    idCiudad VARCHAR(3),
+    nombre VARCHAR(25),
+    idPais VARCHAR(3),
+
+    CONSTRAINT pk_idCiudad PRIMARY KEY(idCiudad),
+    CONSTRAINT fk_ciudades_paises FOREIGN KEY (idPais) REFERENCES paises (idPais)
+);
+
+CREATE TABLE compras(
+    idCompra INT AUTO_INCREMENT,
+    fecha DATE,
+    total DECIMAL(10, 2),
+
+    CONSTRAINT pk_idCompra PRIMARY KEY (idCompra)
+);
+
+
+CREATE TABLE proveedores(
+    idProveedor VARCHAR(10),
+    nombre VARCHAR(30),
+    correo VARCHAR(30) UNIQUE,
+    idCiudad VARCHAR(3),
+
+    CONSTRAINT pk_idProveedor PRIMARY KEY (idProveedor),
+    CONSTRAINT fk_proveedores_ciudades FOREIGN KEY (idCiudad) REFERENCES ciudades (idCiudad)
+);
+
+CREATE TABLE telefonos_proveedores(
+    idTel INT AUTO_INCREMENT,
+    tel VARCHAR(10),
+    idProveedor VARCHAR(10),
+    CONSTRAINT pk_idTel PRIMARY KEY(idTel),
+    CONSTRAINT fk_telefonos_proveedores_proveedores FOREIGN KEY (idProveedor) REFERENCES proveedores (idProveedor)
+);
+
+CREATE TABLE repuestos (
+    idRepuesto INT AUTO_INCREMENT,
+    nombre VARCHAR(30),
+    descripcion TEXT,
+    precio DECIMAL(10, 2),
+    stock INT,
+    idProveedor VARCHAR(10),
+
+    CONSTRAINT pk_idRepuesto PRIMARY KEY (idRepuesto),
+    CONSTRAINT fk_repuestos_proveedores FOREIGN KEY (idProveedor) REFERENCES proveedores (idProveedor)
+);
+
+CREATE TABLE detalles_compras(
+    idDetalle INT AUTO_INCREMENT,
+    idCompra INT,
+    idRepuesto INT,
+    cantidad INT,
+
+    CONSTRAINT idDetalle PRIMARY KEY (idDetalle),
+    CONSTRAINT fk_detalles_compras_compras FOREIGN KEY (idCompra) REFERENCES compras (idCompra),
+    CONSTRAINT fk_detalles_compras_repuestos FOREIGN KEY (idRepuesto) REFERENCES repuestos (idRepuesto)
+);
 CREATE TABLE modelos(
     idModelo INT AUTO_INCREMENT,
     nombre VARCHAR(30),
@@ -24,7 +96,7 @@ CREATE TABLE clientes(
     idCliente VARCHAR(10),
     nombre VARCHAR(30),
     Correo VARCHAR(30) UNIQUE,
-    idCiudad INT,
+    idCiudad VARCHAR(3),
     CONSTRAINT pk_idCliente PRIMARY KEY(idCliente),
     CONSTRAINT fk_clientes_ciudades  FOREIGN KEY(idCiudad) REFERENCES ciudades(idCiudad)
 );
@@ -37,11 +109,11 @@ CREATE TABLE telefonos(
     CONSTRAINT fk_telefonos_clientes  FOREIGN KEY(idCliente) REFERENCES clientes(idCliente)
 );
 
-CREATE TABLES ventas(
+CREATE TABLE ventas(
     idVenta INT AUTO_INCREMENT,
     fecha DATE,
     total DECIMAL(10,2),
-    idCliente VARCHAR(10)
+    idCliente VARCHAR(10),
     CONSTRAINT pk_idVenta PRIMARY KEY(idVenta),
     CONSTRAINT fk_ventas_clientes  FOREIGN KEY(idCliente) REFERENCES clientes(idCliente)
 );
