@@ -101,7 +101,7 @@ CREATE TABLE clientes(
     CONSTRAINT fk_clientes_ciudades  FOREIGN KEY(idCiudad) REFERENCES ciudades(idCiudad)
 );
 
-CREATE TABLE telefonos(
+CREATE TABLE telefonos_clientes(
     idTel INT AUTO_INCREMENT,
     tel VARCHAR(10),
     idCliente VARCHAR(10),
