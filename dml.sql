@@ -24,7 +24,7 @@ CREATE TABLE ciudades(
 CREATE TABLE compras(
     idCompra INT AUTO_INCREMENT,
     fecha DATE,
-    total DECIMAL(10, 2),
+    total DECIMAL(10, 2) CHECK (total >= 0),
 
     CONSTRAINT pk_idCompra PRIMARY KEY (idCompra)
 );
@@ -52,8 +52,8 @@ CREATE TABLE repuestos (
     idRepuesto INT AUTO_INCREMENT,
     nombre VARCHAR(30),
     descripcion TEXT,
-    precio DECIMAL(10, 2),
-    stock INT,
+    precio DECIMAL(10, 2) CHECK (precio >= 0),
+    stock INT CHECK ( stock >= 0),
     idProveedor VARCHAR(10),
 
     CONSTRAINT pk_idRepuesto PRIMARY KEY (idRepuesto),
@@ -64,7 +64,7 @@ CREATE TABLE detalles_compras(
     idDetalle INT AUTO_INCREMENT,
     idCompra INT,
     idRepuesto INT,
-    cantidad INT,
+    cantidad INT CHECK (cantidad >= 0),
 
     CONSTRAINT idDetalle PRIMARY KEY (idDetalle),
     CONSTRAINT fk_detalles_compras_compras FOREIGN KEY (idCompra) REFERENCES compras (idCompra),
@@ -84,8 +84,8 @@ CREATE TABLE marcas(
 
 CREATE TABLE bicicletas(
     idBici INT AUTO_INCREMENT,
-    precio DECIMAL(10,2),
-    stock INT,
+    precio DECIMAL(10, 2) CHECK (precio >= 0),
+    stock INT CHECK (stock >= 0),
     idModelo INT,
     idMarca INT, 
     CONSTRAINT pk_idBicicleta PRIMARY KEY(idBici),
@@ -95,10 +95,10 @@ CREATE TABLE bicicletas(
 CREATE TABLE clientes(
     idCliente VARCHAR(10),
     nombre VARCHAR(30),
-    Correo VARCHAR(30) UNIQUE,
+    correo VARCHAR(30) UNIQUE,
     idCiudad VARCHAR(3),
-    CONSTRAINT pk_idCliente PRIMARY KEY(idCliente),
-    CONSTRAINT fk_clientes_ciudades  FOREIGN KEY(idCiudad) REFERENCES ciudades(idCiudad)
+    CONSTRAINT pk_idCliente PRIMARY KEY (idCliente),
+    CONSTRAINT fk_clientes_ciudades  FOREIGN KEY (idCiudad) REFERENCES ciudades (idCiudad)
 );
 
 CREATE TABLE telefonos_clientes(
@@ -112,7 +112,7 @@ CREATE TABLE telefonos_clientes(
 CREATE TABLE ventas(
     idVenta INT AUTO_INCREMENT,
     fecha DATE,
-    total DECIMAL(10,2),
+    total DECIMAL(10,2) CHECK (total >= 0),
     idCliente VARCHAR(10),
     CONSTRAINT pk_idVenta PRIMARY KEY(idVenta),
     CONSTRAINT fk_ventas_clientes  FOREIGN KEY(idCliente) REFERENCES clientes(idCliente)
@@ -120,8 +120,8 @@ CREATE TABLE ventas(
 
 CREATE TABLE detalles_ventas(
     idDetalle INT AUTO_INCREMENT,
-    cantidad INT,
-    precioUni DECIMAL(10,2),
+    cantidad INT CHECK (cantidad >= 0),
+    precioUni DECIMAL(10, 2) CHECK (precioUni >= 0),
     idVenta INT,
     idBici INT,
     CONSTRAINT pk_idDetalle PRIMARY KEY(idDetalle),
