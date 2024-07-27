@@ -425,5 +425,151 @@ CALL devolver(1);
 ### Caso de Uso 11: Calculadora de Descuentos en Ventas
 
 ```sql
+DELIMITER $$
+CREATE PROCEDURE descuento(
+	IN idVenta_ven INT,
+    IN descuento_ven INT
+)
+BEGIN
+	UPDATE ventas
+    SET total = total * (1 - descuento_ven / 100)
+    WHERE idVenta = idVenta_ven;
+END $$
+DELIMITER ;
 
+CALL descuento(2, 50);
+```
+
+## FUNCIONES DE RESUMEN
+
+### Caso de Uso 1: Calcular el Total de Ventas Mensuales
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE total_ventas_mes()
+BEGIN
+    SELECT MONTHNAME(fecha) AS mes, SUM(total) as total_mes
+	FROM ventas
+	GROUP BY mes;
+END $$
+DELIMITER ;
+
+CALL total_ventas_mes();
+```
+
+### Caso de Uso 3: Contar el Número de Ventas Realizadas en un Rango de Fechas
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE ventas_rango_fecha(inicio DATE, fin DATE)
+BEGIN
+    SELECT COUNT(idVenta) AS total FROM ventas
+    WHERE fecha BETWEEN inicio AND fin;
+END $$
+DELIMITER ;
+
+CALL ventas_rango_fecha('2023-01-10', '2023-05-10');
+```
+
+### Caso de Uso 5: Calcular el Ingreso Total por Año
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE calcular_total_año()
+BEGIN
+SELECT YEAR(fecha) AS año, SUM(total) AS total_año
+FROM ventas
+GROUP BY YEAR(fecha);
+END $$
+DELIMITER ;
+
+CALL calcular_total_año();
+```
+
+### Caso de Uso 7: Calcular el Promedio de Compras por Proveedor
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE promedio_proveedor()
+BEGIN
+SELECT
+	prov.idProveedor,
+    AVG(comp.total)
+FROM compras comp
+INNER JOIN detalles_compras det ON comp.idCompra = det.idCompra
+INNER JOIN repuestos rep ON det.idRepuesto = rep.idRepuesto
+INNER JOIN proveedores prov ON rep.idProveedor = prov.idProveedor
+GROUP BY prov.idProveedor
+END $$
+DELIMITER ;
+
+CALL promedio_proveedor();
+```
+
+### Caso de Uso 9: Calcular el Promedio de Precios de Bicicletas por Marca
+
+```sql
+DELIMITER $$
+
+CREATE PROCEDURE promedio_precio_bici()
+BEGIN
+    SELECT
+        mar.idMarca,
+        mar.nombre AS nombre_marca,
+        ROUND(AVG(bi.precio), 2) AS promedio_precio
+    FROM bicicletas bi
+    INNER JOIN marcas mar ON bi.idMarca = mar.idMarca
+    GROUP BY mar.idMarca, mar.nombre;
+END $$
+
+DELIMITER ;
+
+CALL promedio_precio_bici();
+```
+
+### Caso de Uso 11: Calcular el Total de Ingresos por Cliente
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE total_ingresos_cliente()
+BEGIN
+SELECT cli.nombre, SUM(ven.total) FROM ventas ven
+INNER JOIN clientes cli ON ven.idCliente = cli.idCliente
+GROUP BY cli.nombre;
+END $$
+DELIMITER ;
+
+CALL total_ingresos_cliente();
+```
+
+### Caso de Uso 13: Calcular el Total de Ventas por Día de la Semana
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE total_dias()
+BEGIN
+SELECT DAYNAME(fecha) AS dia, SUM(total) AS total
+FROM ventas
+GROUP BY dia;
+END $$
+DELIMITER ;
+
+CALL total_dias();
+```
+
+### Caso de Uso 15: Calcular el Total de Ventas por Año y Mes
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE total_ventas_año_mes()
+BEGIN
+SELECT 
+	CONCAT(YEAR(fecha), '-' ,MONTH(fecha)) AS año_mes,
+	SUM(total) AS total
+FROM ventas
+GROUP BY año_mes;
+END $$
+DELIMITER ;
+
+CALL total_ventas_año_mes();
 ```
