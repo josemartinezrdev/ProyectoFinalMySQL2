@@ -334,6 +334,21 @@ WHERE v.fecha BETWEEN '2024-07-01' AND '2024-10-30';
 Descripción: Este caso de uso describe cómo el sistema actualiza el inventario de bicicletas
 cuando se realiza una venta.
 
+```sql
+DELIMITER $$
+CREATE TRIGGER actualizar_stock_bici
+AFTER INSERT ON detalles_ventas
+FOR EACH ROW
+BEGIN
+    UPDATE bicicletas
+    SET stock = stock - NEW.cantidad
+    WHERE idBici = NEW.idBici;
+END $$
+DELIMITER ;
+
+INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
+```
+
 
 ### Caso de Uso 2: Registro de Nueva Venta
 
@@ -385,21 +400,6 @@ DELIMITER ;
 ```
 ```sql
 CALL agregarVenta('2024-07-25','C005');
-```
-
-```sql
-DELIMITER $$
-CREATE TRIGGER actualizar_stock_bici
-AFTER INSERT ON detalles_ventas
-FOR EACH ROW
-BEGIN
-    UPDATE bicicletas
-    SET stock = stock - NEW.cantidad
-    WHERE idBici = NEW.idBici;
-END $$
-DELIMITER ;
-
-INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
 ```
 
 ### Caso de Uso 3: Generación de Reporte de Ventas por Cliente
