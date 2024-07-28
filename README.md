@@ -334,17 +334,57 @@ WHERE v.fecha BETWEEN '2024-07-01' AND '2024-10-30';
 Descripción: Este caso de uso describe cómo el sistema actualiza el inventario de bicicletas
 cuando se realiza una venta.
 
-```sql
-
-```
 
 ### Caso de Uso 2: Registro de Nueva Venta
 
 Descripción: Este caso de uso describe cómo el sistema registra una nueva venta, incluyendo la
 creación de la venta y la inserción de los detalles de la venta.
 
+Pirmero creamos una tabla temporal para los detalles de venta ya que necesitamos hacer los cálculos del total en la tabla ventas
 ```sql
+CREATE TEMPORARY TABLE detallesVentasTemp(
+    idBici INT,
+    cantidad INT,
+    precioUni DECIMAL(10,2)
+);
+```
+```sql
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (1, 2, 500.00);
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (2, 1, 300.00);
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (3, 1, 700.00);
+```
+```sql
+DELIMITER $$
 
+CREATE PROCEDURE agregarVenta(
+    IN p_fecha DATE,
+    IN p_idCliente VARCHAR(10)
+)
+BEGIN
+    DECLARE v_idVenta INT;
+    DECLARE v_total DECIMAL(10,2);
+
+    IF(SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El cliente no existe';
+    END IF;
+
+    SELECT SUM(cantidad * precioUni) INTO v_total FROM detallesVentasTemp;
+
+    INSERT INTO ventas (fecha, total, idCliente) VALUES (p_fecha, v_total, p_idCliente);
+
+    SET v_idVenta = LAST_INSERT_ID();
+
+    INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) SELECT cantidad, precioUni, v_idVenta, idBici
+    FROM detallesVentasTemp;
+
+    DELETE FROM detallesVentasTemp WHERE idBici IS NOT NULL;
+
+END $$
+DELIMITER ;
+```
+```sql
+CALL agregarVenta('2024-07-25','C005');
 ```
 
 ### Caso de Uso 3: Generación de Reporte de Ventas por Cliente
@@ -373,6 +413,59 @@ DELIMITER ;
 
 CALL reporte_cliente('C001');
 ```
+## Caso de Uso 4: Registro de Compra de Repuestos
+Descripción: Este caso de uso describe cómo el sistema registra una nueva compra de repuestos
+a un proveedor.
+#### Actualizamos stock con un disparador
+```sql
+DELIMITER $$
+CREATE TRIGGER actualizarStock
+AFTER INSERT ON detalles_compras
+FOR EACH ROW
+BEGIN 
+    UPDATE repuestos
+    SET stock = stock + NEW.cantidad
+    WHERE idRepuesto = NEW.idRepuesto;
+END $$
+DELIMITER ;
+```
+#### Creamos un tabla temporal y la llenamos 
+```sql
+CREATE TEMPORARY TABLE IF NOT EXISTS detallesComprasTemp(
+    idRepuesto INT,
+    cantidad INT
+);
+
+INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (4,3);
+INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (2,1);
+```
+```sql
+DROP PROCEDURE IF EXISTS insertarCompra;
+DELIMITER $$
+CREATE PROCEDURE insertarCompra(
+    IN p_fecha DATE
+)
+BEGIN 
+    DECLARE v_idCompra INT;
+    DECLARE v_total DECIMAL(10,2);
+
+    SELECT SUM(dc.cantidad * r.precio) INTO v_total
+    FROM detallesComprasTemp dc
+    INNER JOIN repuestos r ON dc.idRepuesto = r.idRepuesto;
+    
+    INSERT INTO compras(fecha, total) VALUES (p_fecha, v_total);
+    
+    SET v_idCompra = LAST_INSERT_ID();
+    INSERT INTO detalles_compras(idCompra, idRepuesto, cantidad)
+    SELECT v_idCompra, idRepuesto, cantidad FROM detallesComprasTemp;
+
+    DELETE FROM detallesComprasTemp;
+END $$
+DELIMITER ;
+```
+```sql
+CALL insertarCompra('2024-01-08');
+```
 
 ### Caso de Uso 5: Generación de Reporte de Inventario
 
@@ -388,7 +481,11 @@ DELIMITER ;
 
 CALL informe_inventario();
 ```
-
+### Caso de Uso 6: Actualización Masiva de Precios
+Descripción: Este caso de uso describe cómo el sistema permite actualizar masivamente los
+precios de todas las bicicletas de una marca específica.
+```sql
+```
 ### Caso de Uso 7: Generación de Reporte de Clientes por Ciudad
 
 ```sql
