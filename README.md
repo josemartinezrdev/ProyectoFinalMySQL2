@@ -29,23 +29,31 @@ DELETE FROM bicicletas WHERE idBici = 4;
 
 ## Caso de Uso 2: Registro de Ventas
 
-### creación de una nueva venta
+Este caso de uso describe cómo el sistema registra una nueva venta, incluyendo la
+creación de la venta y la inserción de los detalles de la venta.
 
 ```sql
-DELIMITER $$
+INSERT INTO ventas(fecha,total, idCliente) VALUES ( '2024-02-10',0, 'C002');
+```
 
-CREATE PROCEDURE registrar_venta(
-    IN p_idCliente VARCHAR(10),
-    IN p_fecha DATE,
-    IN p_total DECIMAL(10,2),
-    IN p_idCliente VC()
-)
+```sql
+SELECT idVenta FROM ventas WHERE idCliente = 'C002' AND fecha = '2024-02-10';
+```
 
+```sql
+INSERT INTO detalles_ventas(cantidad, precioUni, idVenta, idBici) VALUES (5, 0,16,5);
+```
 
+```sql
+SELECT precio FROM bicicletas WHERE idBici = 5;
+```
 
+```sql
+UPDATE detalles_ventas SET precioUni = 3000 WHERE  idVenta= 16 AND idBici = 5;
+```
 
-
-DELIMITER;
+```sql
+UPDATE ventas SET total = 3000*5 WHERE idVenta = 16;
 ```
 
 ### selección de las bicicletas vendidas
@@ -98,6 +106,27 @@ UPDATE repuestos
 DELETE FROM repuestos WHERE idRepuesto = 11
 ```
 
+### Caso de Uso 4: Consulta de Historial de Ventas por Cliente
+
+Descripción: Este caso de uso describe cómo el sistema permite a un usuario consultar el
+historial de ventas de un cliente específico, mostrando todas las compras realizadas por el cliente
+y los detalles de cada venta.
+
+```sql
+SELECT idVenta, fecha, total, idCliente FROM ventas
+WHERE idCliente ='C002';
+```
+
+```sql
+SELECT idDetalle, cantidad, precioUni, idVenta, idBici FROM detalles_ventas
+WHERE idVenta IN (2,16);
+```
+
+```sql
+SELECT idBici, precio, stock, idMarca, idModelo FROM bicicletas
+WHERE idBici IN(2,5);
+```
+
 ### Caso de Uso 5: Compras de Repuestos a Proveedores
 
 ```sql
@@ -107,9 +136,39 @@ INSERT INTO compras (fecha, total) VALUES ('2024-07-25', 1500.07);
 
 ```
 
+## SUBCONSULTAS
+
 ### Caso de Uso 6: Consulta de Bicicletas Más Vendidas por Marca
 
-## SUBCONSULTAS
+Descripción: Este caso de uso describe cómo el sistema permite a un usuario consultar las
+bicicletas más vendidas por cada marca.
+
+```sql
+SELECT idMarca,
+		idModelo,
+       idBici,
+       total_vendido
+FROM (
+    SELECT idMarca,
+			idModelo,
+           idBici,
+           (SELECT SUM(cantidad)
+            FROM detalles_ventas
+            WHERE idBici = bicicletas.idBici) AS total_vendido
+    FROM bicicletas
+) AS ventas_por_bici
+WHERE total_vendido = (
+    SELECT MAX(total_vendido)
+    FROM (
+        SELECT idMarca,
+               (SELECT SUM(cantidad)
+                FROM detalles_ventas
+                WHERE idBici = bicicletas.idBici) AS total_vendido
+        FROM bicicletas
+    ) AS ventas_por_marca
+    WHERE ventas_por_marca.idMarca = ventas_por_bici.idMarca
+);
+```
 
 ### Caso de Uso 7: Clientes con Mayor Gasto en un Año Específico
 
@@ -141,6 +200,46 @@ DELIMITER ;
 CALL clientes_gastos('2023');
 ```
 
+### Caso de Uso 8: Proveedores con Más Compras en el Último Mes
+
+Descripción: Este caso de uso describe cómo el sistema permite consultar los proveedores que
+han recibido más compras en el último mes.
+
+```sql
+SELECT p.idProveedor, p.nombre,
+    (
+        SELECT COUNT(c.idCompra)
+        FROM compras c
+        WHERE c.idCompra IN (
+            SELECT dc.idCompra
+            FROM detalles_compras dc
+            WHERE dc.idRepuesto IN (
+                SELECT r.idRepuesto
+                FROM repuestos r
+                WHERE r.idProveedor = p.idProveedor
+            )
+        )
+        AND c.fecha BETWEEN '2024-07-01' AND '2024-07-31'
+    ) AS numero_compras
+FROM proveedores p
+WHERE p.idProveedor IN (
+    SELECT r.idProveedor
+    FROM repuestos r
+    WHERE r.idRepuesto IN (
+        SELECT dc.idRepuesto
+        FROM detalles_compras dc
+        WHERE dc.idCompra IN (
+            SELECT c.idCompra
+            FROM compras c
+            WHERE c.fecha BETWEEN '2024-07-01' AND '2024-07-31'
+        )
+    )
+)
+ORDER BY numero_compras DESC;
+
+
+```
+
 ### Caso de Uso 9: Repuestos con Menor Rotación en el Inventario
 
 ```sql
@@ -152,6 +251,28 @@ SELECT
 FROM repuestos rep
 ORDER BY total_comprado ASC;
 ```
+
+### Caso de Uso 10: Ciudades con Más Ventas Realizadas
+
+Descripción: Este caso de uso describe cómo el sistema permite consultar las ciudades donde se
+han realizado más ventas de bicicletas.
+
+```sql
+SELECT c.idCiudad, c.nombre,
+    (
+        SELECT COUNT(*)
+        FROM ventas v
+        WHERE v.idCliente IN (
+            SELECT cl.idCliente
+            FROM clientes cl
+            WHERE cl.idCiudad = c.idCiudad
+        )
+    ) AS cantidad_ventas
+FROM ciudades c
+ORDER BY cantidad_ventas DESC;
+```
+
+## Casos de Uso con Joins
 
 ### Caso de Uso 11: Consulta de Ventas por Ciudad
 
@@ -168,6 +289,18 @@ GROUP BY det.idventa
 ORDER BY numero_compras DESC;
 ```
 
+## Caso de Uso 12: Consulta de Proveedores por País
+
+Descripción: Este caso de uso describe cómo el sistema permite consultar los proveedores
+agrupados por país.
+
+```sql
+SELECT p.idPais, p.nombre, pr.idProveedor, pr.nombre AS nombre_proveedor
+FROM paises p
+JOIN ciudades c ON p.idPais = c.idPais
+JOIN proveedores pr ON c.idCiudad = pr.idCiudad;
+```
+
 ### Caso de Uso 13: Compras de Repuestos por Proveedor
 
 ```sql
@@ -182,9 +315,77 @@ GROUP BY rep.idRepuesto
 ORDER BY numero_compras DESC;
 ```
 
+### Caso de Uso 14: Clientes con Ventas en un Rango de Fechas
+
+Descripción: Este caso de uso describe cómo el sistema permite consultar los clientes que han
+realizado compras dentro de un rango de fechas específico.
+
+```sql
+SELECT c.idCliente, c.nombre, v.idVenta, v.fecha
+FROM clientes c
+JOIN ventas v ON c.idCliente = v.idCliente
+WHERE v.fecha BETWEEN '2024-07-01' AND '2024-10-30';
+```
+
 ## PROCEDIMIENTOS
 
 ### Caso de Uso 1: Actualización de Inventario de Bicicletas
+
+Descripción: Este caso de uso describe cómo el sistema actualiza el inventario de bicicletas
+cuando se realiza una venta.
+
+
+### Caso de Uso 2: Registro de Nueva Venta
+
+Descripción: Este caso de uso describe cómo el sistema registra una nueva venta, incluyendo la
+creación de la venta y la inserción de los detalles de la venta.
+
+Pirmero creamos una tabla temporal para los detalles de venta ya que necesitamos hacer los cálculos del total en la tabla ventas
+```sql
+CREATE TEMPORARY TABLE detallesVentasTemp(
+    idBici INT,
+    cantidad INT,
+    precioUni DECIMAL(10,2)
+);
+```
+```sql
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (1, 2, 500.00);
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (2, 1, 300.00);
+INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (3, 1, 700.00);
+```
+```sql
+DELIMITER $$
+
+CREATE PROCEDURE agregarVenta(
+    IN p_fecha DATE,
+    IN p_idCliente VARCHAR(10)
+)
+BEGIN
+    DECLARE v_idVenta INT;
+    DECLARE v_total DECIMAL(10,2);
+
+    IF(SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El cliente no existe';
+    END IF;
+
+    SELECT SUM(cantidad * precioUni) INTO v_total FROM detallesVentasTemp;
+
+    INSERT INTO ventas (fecha, total, idCliente) VALUES (p_fecha, v_total, p_idCliente);
+
+    SET v_idVenta = LAST_INSERT_ID();
+
+    INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) SELECT cantidad, precioUni, v_idVenta, idBici
+    FROM detallesVentasTemp;
+
+    DELETE FROM detallesVentasTemp WHERE idBici IS NOT NULL;
+
+END $$
+DELIMITER ;
+```
+```sql
+CALL agregarVenta('2024-07-25','C005');
+```
 
 ```sql
 DELIMITER $$
@@ -227,6 +428,59 @@ DELIMITER ;
 
 CALL reporte_cliente('C001');
 ```
+## Caso de Uso 4: Registro de Compra de Repuestos
+Descripción: Este caso de uso describe cómo el sistema registra una nueva compra de repuestos
+a un proveedor.
+#### Actualizamos stock con un disparador
+```sql
+DELIMITER $$
+CREATE TRIGGER actualizarStock
+AFTER INSERT ON detalles_compras
+FOR EACH ROW
+BEGIN 
+    UPDATE repuestos
+    SET stock = stock + NEW.cantidad
+    WHERE idRepuesto = NEW.idRepuesto;
+END $$
+DELIMITER ;
+```
+#### Creamos un tabla temporal y la llenamos 
+```sql
+CREATE TEMPORARY TABLE IF NOT EXISTS detallesComprasTemp(
+    idRepuesto INT,
+    cantidad INT
+);
+
+INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (4,3);
+INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (2,1);
+```
+```sql
+DROP PROCEDURE IF EXISTS insertarCompra;
+DELIMITER $$
+CREATE PROCEDURE insertarCompra(
+    IN p_fecha DATE
+)
+BEGIN 
+    DECLARE v_idCompra INT;
+    DECLARE v_total DECIMAL(10,2);
+
+    SELECT SUM(dc.cantidad * r.precio) INTO v_total
+    FROM detallesComprasTemp dc
+    INNER JOIN repuestos r ON dc.idRepuesto = r.idRepuesto;
+    
+    INSERT INTO compras(fecha, total) VALUES (p_fecha, v_total);
+    
+    SET v_idCompra = LAST_INSERT_ID();
+    INSERT INTO detalles_compras(idCompra, idRepuesto, cantidad)
+    SELECT v_idCompra, idRepuesto, cantidad FROM detallesComprasTemp;
+
+    DELETE FROM detallesComprasTemp;
+END $$
+DELIMITER ;
+```
+```sql
+CALL insertarCompra('2024-01-08');
+```
 
 ### Caso de Uso 5: Generación de Reporte de Inventario
 
@@ -242,7 +496,11 @@ DELIMITER ;
 
 CALL informe_inventario();
 ```
-
+### Caso de Uso 6: Actualización Masiva de Precios
+Descripción: Este caso de uso describe cómo el sistema permite actualizar masivamente los
+precios de todas las bicicletas de una marca específica.
+```sql
+```
 ### Caso de Uso 7: Generación de Reporte de Clientes por Ciudad
 
 ```sql
