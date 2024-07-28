@@ -186,6 +186,21 @@ ORDER BY numero_compras DESC;
 
 ### Caso de Uso 1: Actualización de Inventario de Bicicletas
 
+```sql
+DELIMITER $$
+CREATE TRIGGER actualizar_stock_bici
+AFTER INSERT ON detalles_ventas
+FOR EACH ROW
+BEGIN
+    UPDATE bicicletas
+    SET stock = stock - NEW.cantidad
+    WHERE idBici = NEW.idBici;
+END $$
+DELIMITER ;
+
+INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
+```
+
 ### Caso de Uso 3: Generación de Reporte de Ventas por Cliente
 
 ```sql
@@ -402,7 +417,7 @@ CALL total_dias();
 DELIMITER $$
 CREATE PROCEDURE total_ventas_año_mes()
 BEGIN
-SELECT 
+SELECT
 	CONCAT(YEAR(fecha), '-' ,MONTH(fecha)) AS año_mes,
 	SUM(total) AS total
 FROM ventas
