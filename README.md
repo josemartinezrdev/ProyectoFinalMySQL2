@@ -334,6 +334,21 @@ WHERE v.fecha BETWEEN '2024-07-01' AND '2024-10-30';
 Descripción: Este caso de uso describe cómo el sistema actualiza el inventario de bicicletas
 cuando se realiza una venta.
 
+```sql
+DELIMITER $$
+CREATE TRIGGER actualizar_stock_bici
+AFTER INSERT ON detalles_ventas
+FOR EACH ROW
+BEGIN
+    UPDATE bicicletas
+    SET stock = stock - NEW.cantidad
+    WHERE idBici = NEW.idBici;
+END $$
+DELIMITER ;
+
+INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
+```
+
 
 ### Caso de Uso 2: Registro de Nueva Venta
 
@@ -810,7 +825,7 @@ CALL total_dias();
 DELIMITER $$
 CREATE PROCEDURE total_ventas_año_mes()
 BEGIN
-SELECT 
+SELECT
 	CONCAT(YEAR(fecha), '-' ,MONTH(fecha)) AS año_mes,
 	SUM(total) AS total
 FROM ventas
