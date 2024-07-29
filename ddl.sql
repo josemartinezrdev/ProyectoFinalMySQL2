@@ -103,9 +103,10 @@ INSERT INTO ventas (fecha, total, idCliente) VALUES
 ('2023-05-05', 3000.00, 'C005');
 
 -- Inserts para la tabla detalles_ventas
-INSERT INTO detalles_ventas (idVenta, idBici, cantidad) VALUES
-(1, 1, 1),
-(2, 2, 2),
-(3, 3, 1),
-(4, 4, 1),
-(5, 5, 1);
+INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES
+(2, 750.00, 1, 1),
+(1, 2000.00, 2, 2),
+(3, 600.00, 3, 3),
+(1, 2500.00, 4, 4),
+(2, 1500.00, 5, 5);
+

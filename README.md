@@ -3,7 +3,7 @@
 ![alt text](CampusBike-1.png)
 
 ELIZABETH PEREZ VALDERRAMA <br>
-JOSE DAVID MARTINEZ RICON|
+JOSE DAVID MARTINEZ RICON
 
 ## Caso de Uso 1: Gestión de Inventario de Bicicletas
 
@@ -69,46 +69,46 @@ UPDATE ventas SET total = 3000*5 WHERE idVenta = 16;
 
 ```sql
 INSERT INTO proveedores ( idProveedor, nombre, correo, idCiudad) VALUES
-("PROV001", "Proveedor 1", "prov1@gmail.com", "TOR" );
+("P006", "Pedro Navaja", "prn@gmail.com", "LAX" );
 ```
 
 #### UPDATE Proveedor
 
 ```sql
-UPDATE proveedores SET nombre = "Proveedor Act", correo = "provact@gmail.com", idCiudad = "MEX"
-WHERE idProveedor = "PROV001";
+UPDATE proveedores SET nombre = "Pedro Navaja", correo = "prN@gmail.com", idCiudad = "MEX"
+WHERE idProveedor = "P006";
 ```
 
 #### DELETE Proveedor
 
 ```sql
-DELETE FROM proveedores WHERE idProveedor = "PROV001";
+DELETE FROM proveedores WHERE idProveedor = "P006";
 ```
 
 #### ADD Repuesto
 
 ```sql
 INSERT INTO repuestos ( nombre, descripcion, precio, stock, idProveedor )
-VALUES ( "Repuesto 0", "Descripcion Repuesto", 1400.09, 140, "PROV001" );
+VALUES ( "cadena", "Es una cadena", 1400.09, 140, "P002" );
 ```
 
 #### UPDATE Repuesto
 
 ```sql
 UPDATE repuestos
-        SET nombre = "Repuesto 1",
-        descripcion = "Descripcion del repuesto 1",
+        SET nombre = "Cadenita",
+        descripcion = "Es una Cadenita",
         precio = 1250,
         stock = 143,
-        idProveedor = "PROV001"
-        WHERE idRepuesto = 11;
+        idProveedor = "P001"
+        WHERE idRepuesto = 6;
 ```
 
 #### DELETE Repuesto
 
 ```sql
 
-DELETE FROM repuestos WHERE idRepuesto = 11
+DELETE FROM repuestos WHERE idRepuesto = 6;
 ```
 
 ### Caso de Uso 4: Consulta de Historial de Ventas por Cliente
@@ -119,25 +119,25 @@ y los detalles de cada venta.
 
 ```sql
 SELECT idVenta, fecha, total, idCliente FROM ventas
-WHERE idCliente ='C002';
+WHERE idCliente = 'C002';
 ```
 
 ```sql
 SELECT idDetalle, cantidad, precioUni, idVenta, idBici FROM detalles_ventas
-WHERE idVenta IN (2,16);
+WHERE idVenta = 2;
 ```
 
 ```sql
 SELECT idBici, precio, stock, idMarca, idModelo FROM bicicletas
-WHERE idBici IN(2,5);
+WHERE idBici = 2;
 ```
 
 ### Caso de Uso 5: Compras de Repuestos a Proveedores
 
 ```sql
 INSERT INTO compras (fecha, total) VALUES ('2024-07-25', 1500.07);
-    INSERT INTO detalles_compras (idCompra, idRepuesto, cantidad) VALUES (1, 11, 100);
-    UPDATE repuestos SET stock = stock + 100 WHERE idRepuesto = 11;
+    INSERT INTO detalles_compras (idCompra, idRepuesto, cantidad) VALUES (1, 5, 100);
+    UPDATE repuestos SET stock = stock + 100 WHERE idRepuesto = 5;
 
 ```
 
@@ -351,7 +351,7 @@ BEGIN
 END $$
 DELIMITER ;
 
-INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
+INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 2, 1);
 ```
 
 ### Caso de Uso 2: Registro de Nueva Venta
@@ -407,6 +407,8 @@ DELIMITER ;
 ```
 
 ```sql
+SET SQL_SAFE_UPDATES = 0;
+
 CALL agregarVenta('2024-07-25','C005');
 ```
 
@@ -664,7 +666,7 @@ CREATE PROCEDURE promedioVentasClientes(
 BEGIN
 
 	IF (SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN
-    SIGNAL SQLSTATE '45000'
+        SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'El cliente no existe';
     END IF;
 
@@ -756,7 +758,7 @@ CREATE PROCEDURE totalClientesActivosMesAño(
     IN p_month INT
 )
 BEGIN
-	SELECT COUNT(DISTINCT idCliente) FROM ventas
+	SELECT COUNT(DISTINCT idCliente) AS total FROM ventas
 	WHERE YEAR(fecha) = p_year AND MONTH(fecha) = p_month;
 END $$
 DELIMITER ;
@@ -777,7 +779,7 @@ FROM compras comp
 INNER JOIN detalles_compras det ON comp.idCompra = det.idCompra
 INNER JOIN repuestos rep ON det.idRepuesto = rep.idRepuesto
 INNER JOIN proveedores prov ON rep.idProveedor = prov.idProveedor
-GROUP BY prov.idProveedor
+GROUP BY prov.idProveedor;
 END $$
 DELIMITER ;
 
