@@ -3,7 +3,7 @@
 ![alt text](CampusBike-1.png)
 
 ELIZABETH PEREZ VALDERRAMA <br>
-JOSE DAVID MARTINEZ RICON
+JOSE DAVID MARTINEZ RICON|
 
 ## Caso de Uso 1: Gestión de Inventario de Bicicletas
 
