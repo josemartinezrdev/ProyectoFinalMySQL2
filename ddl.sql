@@ -27,7 +27,7 @@ INSERT INTO proveedores (idProveedor, nombre, correo, idCiudad) VALUES
 ('P001', 'BiciProveeduría', 'contacto@biciproveeduria.com', 'NYC'),
 ('P002', 'RuedaSuplidores', 'ventas@ruedasuplidores.com', 'LAX'),
 ('P003', 'Componentes del Norte', 'info@componentesdelnorte.ca', 'TOR'),
-('P004', 'MTL Parts', 'service@mtlparts.ca', 'MTL'),
+('P004', 'MTL Parts', 'service@mtlparts.ca', 'GDL'),
 ('P005', 'Refacciones Mexicanas', 'ventas@refmex.com', 'MEX');
 
 -- Inserts para la tabla telefonos_proveedores
