@@ -485,6 +485,21 @@ CALL informe_inventario();
 Descripción: Este caso de uso describe cómo el sistema permite actualizar masivamente los
 precios de todas las bicicletas de una marca específica.
 ```sql
+DELIMITER $$
+CREATE PROCEDURE actualizaPrecioMarca(
+	IN p_idMarca INT,
+    IN p_porcertaje DECIMAL(10,2)
+)
+BEGIN
+	UPDATE bicicletas
+    SET precio = precio *(1 + (p_porcertaje/100))
+    WHERE idMarca = p_idMarca;
+
+END $$
+DELIMITER ;
+
+CALL actualizaPrecioMarca(1,16.00);
+
 ```
 ### Caso de Uso 7: Generación de Reporte de Clientes por Ciudad
 
@@ -502,7 +517,28 @@ DELIMITER ;
 
 CALL clientes_ciudades();
 ```
-
+### Caso de Uso 8: Verificación de Stock antes de Venta
+Descripción: Este caso de uso describe cómo el sistema verifica el stock de una bicicleta antes de
+permitir la venta.
+```sql
+DELIMITER $$
+CREATE TRIGGER verificarStock 
+BEFORE INSERT ON detalles_ventas
+FOR EACH ROW 
+BEGIN 
+	DECLARE v_stock INT;
+    
+    SELECT stock INTO v_stock
+    FROM bicicletas
+    WHERE idBici = NEW.idBici;
+    
+    IF NEW.cantidad > v_stock THEN 
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'La cantidad solicitada excede el stock disponible';
+    END IF;
+END $$
+DELIMITER ; 
+```
 ### Caso de Uso 9: Registro de Devoluciones
 
 ```sql
@@ -517,6 +553,25 @@ END $$
 DELIMITER ;
 
 CALL devolver(1);
+```
+### Caso de Uso 10: Generación de Reporte de Compras por Proveedor
+Descripción: Este caso de uso describe cómo el sistema genera un reporte de compras realizadas
+a un proveedor específico, mostrando todos los detalles de las compras.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE comprasDetalladas()
+BEGIN 
+	SELECT c.idCompra, c.fecha, d.cantidad, r.nombre AS nombre_repuesto, 
+    p.idProveedor, p.nombre AS nombre_proveedor, c.total
+	FROM compras c
+	INNER JOIN detalles_compras d ON c.idCompra = d.idCompra
+	INNER JOIN repuestos r ON d.idRepuesto = r.idRepuesto
+	INNER JOIN proveedores p ON r.idProveedor = p.idProveedor;
+END $$
+DELIMITER ;
+
+CALL comprasDetalladas();
 ```
 
 ### Caso de Uso 11: Calculadora de Descuentos en Ventas
@@ -553,6 +608,35 @@ DELIMITER ;
 
 CALL total_ventas_mes();
 ```
+### Caso de Uso 2: Calcular el Promedio de Ventas por Cliente
+Descripción: Este caso de uso describe cómo el sistema calcula el promedio de ventas realizadas
+por un cliente específico.
+```sql
+DELIMITER $$
+CREATE PROCEDURE promedioVentasClientes(
+	IN p_idCliente VARCHAR(10),
+    OUT promedioVentas DECIMAL(10,2)
+)
+BEGIN 
+
+	IF (SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN 
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El cliente no existe';
+    END IF;
+    
+	SELECT AVG(total) INTO promedioVentas
+    FROM ventas 
+    WHERE idcliente = p_idCliente;
+
+END $$
+DELIMITER ;
+
+SET @promedioVentas = 0;
+
+CALL promedioVentasClientes('C002', @promedioVentas);
+
+SELECT @promedioVentas AS promedioVentas;
+```
 
 ### Caso de Uso 3: Contar el Número de Ventas Realizadas en un Rango de Fechas
 
@@ -567,7 +651,36 @@ DELIMITER ;
 
 CALL ventas_rango_fecha('2023-01-10', '2023-05-10');
 ```
+### Caso de Uso 4: Calcular el Total de Repuestos Comprados por Proveedor
+Descripción: Este caso de uso describe cómo el sistema calcula el total de repuestos comprados a
+un proveedor específico.
+```sql
+DROP PROCEDURE IF EXISTS totalRepuestosProveedor;
+DELIMITER $$
 
+CREATE PROCEDURE totalRepuestosProveedor(
+    IN p_idProveedor VARCHAR(10)
+)
+BEGIN
+
+    IF (SELECT COUNT(*) FROM proveedores WHERE idProveedor = p_idProveedor) = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El proveedor no existe';
+    END IF;
+
+    SELECT p.idProveedor, p.nombre, SUM(d.cantidad) AS totalRepuestos
+    FROM detalles_compras d
+    INNER JOIN repuestos r ON d.idRepuesto = r.idRepuesto
+    INNER JOIN proveedores p ON r.idProveedor = p.idProveedor
+    WHERE p.idProveedor = p_idProveedor
+    GROUP BY p.idProveedor, p.nombre;
+END $$
+DELIMITER ;
+
+CALL totalRepuestosProveedor('P002');
+
+
+```
 ### Caso de Uso 5: Calcular el Ingreso Total por Año
 
 ```sql
@@ -582,7 +695,23 @@ DELIMITER ;
 
 CALL calcular_total_año();
 ```
+### Caso de Uso 6: Calcular el Número de Clientes Activos en un Mes
+Descripción: Este caso de uso describe cómo el sistema cuenta el número de clientes que han
+realizado al menos una compra en un mes específico.
+```sql
+DELIMITER $$
+CREATE PROCEDURE totalClientesActivosMesAño(
+	IN p_year INT,
+    IN p_month INT
+)
+BEGIN
+	SELECT COUNT(DISTINCT idCliente) FROM ventas
+	WHERE YEAR(fecha) = p_year AND MONTH(fecha) = p_month;
+END $$
+DELIMITER ;
 
+CALL totalClientesActivosMesAño(2024, 7);
+```
 ### Caso de Uso 7: Calcular el Promedio de Compras por Proveedor
 
 ```sql
@@ -601,6 +730,27 @@ END $$
 DELIMITER ;
 
 CALL promedio_proveedor();
+```
+### Caso de Uso 8: Calcular el Total de Ventas por Marca
+Descripción: Este caso de uso describe cómo el sistema calcula el total de ventas agrupadas por
+la marca de las bicicletas vendidas.
+```sql
+DROP PROCEDURE IF EXISTS totalVentasPorMarca;
+DELIMITER $$
+
+CREATE PROCEDURE totalVentasPorMarca()
+BEGIN
+    SELECT COUNT(v.idVenta) AS total_ventas, m.idMarca, m.nombre
+    FROM ventas v
+    INNER JOIN detalles_ventas d ON v.idVenta = d.idVenta
+    INNER JOIN bicicletas b ON d.idBici = b.idBici
+    INNER JOIN marcas m ON b.idMarca = m.idMarca
+    GROUP BY m.idMarca, m.nombre;
+END $$
+DELIMITER ;
+
+CALL totalVentasPorMarca();
+
 ```
 
 ### Caso de Uso 9: Calcular el Promedio de Precios de Bicicletas por Marca
