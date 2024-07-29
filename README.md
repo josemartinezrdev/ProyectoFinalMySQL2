@@ -788,7 +788,22 @@ DELIMITER ;
 
 CALL promedio_precio_bici();
 ```
+### Caso de Uso 10: Contar el Número de Repuestos por Proveedor
+Descripción: Este caso de uso describe cómo el sistema cuenta el número de repuestos
+suministrados por cada proveedor.
+```sql
+DELIMITER $$
 
+CREATE PROCEDURE repuestoPorProveedor()
+BEGIN
+	SELECT COUNT(DISTINCT r.idRepuesto) AS numero_repuestos, p.idProveedor , p.nombre
+	FROM repuestos r
+	INNER JOIN proveedores p ON r.idProveedor = p.idProveedor
+	GROUP BY p.idProveedor;
+END $$
+DELIMITER ;
+CALL repuestoPorProveedor();
+```
 ### Caso de Uso 11: Calcular el Total de Ingresos por Cliente
 
 ```sql
@@ -803,7 +818,26 @@ DELIMITER ;
 
 CALL total_ingresos_cliente();
 ```
+### Caso de Uso 12: Calcular el Promedio de Compras Mensuales
+Descripción: Este caso de uso describe cómo el sistema calcula el promedio de compras
+realizadas mensualmente por todos los clientes.
+```sql
+DROP PROCEDURE IF EXISTS promedioComprasMensuales;
+DELIMITER $$
 
+CREATE PROCEDURE promedioComprasMensuales()
+BEGIN
+    SELECT AVG(total_compras) AS promedio_mensual
+    FROM (
+        SELECT COUNT(idCompra) AS total_compras
+        FROM compras
+        GROUP BY YEAR(fecha), MONTH(fecha)
+    ) AS compras_mensuales;
+END $$
+DELIMITER ;
+
+CALL promedioComprasMensuales();
+```
 ### Caso de Uso 13: Calcular el Total de Ventas por Día de la Semana
 
 ```sql
@@ -818,7 +852,29 @@ DELIMITER ;
 
 CALL total_dias();
 ```
+### Caso de Uso 14: Contar el Número de Ventas por Categoría de Bicicleta
+Descripción: Este caso de uso describe cómo el sistema cuenta el número de ventas realizadas
+para cada categoría de bicicleta (por ejemplo, montaña, carretera, híbrida).
+```sql
+DROP PROCEDURE IF EXISTS contarVentasPorCategoria;
+DELIMITER $$
 
+CREATE PROCEDURE contarVentasPorCategoria()
+BEGIN
+    SELECT 
+        m.nombre AS categoria,
+        COUNT(d.idDetalle) AS total_ventas
+    FROM ventas v
+    INNER JOIN detalles_ventas d ON v.idVenta = d.idVenta
+    INNER JOIN bicicletas b ON d.idBici = b.idBici
+    INNER JOIN modelos m ON b.idModelo = m.idModelo
+    GROUP BY m.idModelo, m.nombre;
+END $$
+DELIMITER ;
+
+CALL contarVentasPorCategoria();
+
+```
 ### Caso de Uso 15: Calcular el Total de Ventas por Año y Mes
 
 ```sql
