@@ -1,5 +1,10 @@
 # Campusbike
 
+![alt text](CampusBike-1.png)
+
+ELIZABETH PEREZ VALDERRAMA <br>
+JOSE DAVID MARTINEZ RICON
+
 ## Caso de Uso 1: Gestión de Inventario de Bicicletas
 
 Descripción: Este caso de uso describe cómo el sistema gestiona el inventario de bicicletas,
@@ -349,13 +354,13 @@ DELIMITER ;
 INSERT INTO detalles_ventas (cantidad, precioUni, idVenta, idBici) VALUES (2, 750.00, 26, 1);
 ```
 
-
 ### Caso de Uso 2: Registro de Nueva Venta
 
 Descripción: Este caso de uso describe cómo el sistema registra una nueva venta, incluyendo la
 creación de la venta y la inserción de los detalles de la venta.
 
 Pirmero creamos una tabla temporal para los detalles de venta ya que necesitamos hacer los cálculos del total en la tabla ventas
+
 ```sql
 CREATE TEMPORARY TABLE detallesVentasTemp(
     idBici INT,
@@ -363,11 +368,13 @@ CREATE TEMPORARY TABLE detallesVentasTemp(
     precioUni DECIMAL(10,2)
 );
 ```
+
 ```sql
 INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (1, 2, 500.00);
 INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (2, 1, 300.00);
 INSERT INTO detallesVentasTemp (idBici, cantidad, precioUni) VALUES (3, 1, 700.00);
 ```
+
 ```sql
 DELIMITER $$
 
@@ -398,6 +405,7 @@ BEGIN
 END $$
 DELIMITER ;
 ```
+
 ```sql
 CALL agregarVenta('2024-07-25','C005');
 ```
@@ -428,23 +436,29 @@ DELIMITER ;
 
 CALL reporte_cliente('C001');
 ```
+
 ## Caso de Uso 4: Registro de Compra de Repuestos
+
 Descripción: Este caso de uso describe cómo el sistema registra una nueva compra de repuestos
 a un proveedor.
+
 #### Actualizamos stock con un disparador
+
 ```sql
 DELIMITER $$
 CREATE TRIGGER actualizarStock
 AFTER INSERT ON detalles_compras
 FOR EACH ROW
-BEGIN 
+BEGIN
     UPDATE repuestos
     SET stock = stock + NEW.cantidad
     WHERE idRepuesto = NEW.idRepuesto;
 END $$
 DELIMITER ;
 ```
-#### Creamos un tabla temporal y la llenamos 
+
+#### Creamos un tabla temporal y la llenamos
+
 ```sql
 CREATE TEMPORARY TABLE IF NOT EXISTS detallesComprasTemp(
     idRepuesto INT,
@@ -454,22 +468,23 @@ CREATE TEMPORARY TABLE IF NOT EXISTS detallesComprasTemp(
 INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (4,3);
 INSERT INTO detallesComprasTemp(idRepuesto, cantidad) VALUES (2,1);
 ```
+
 ```sql
 DROP PROCEDURE IF EXISTS insertarCompra;
 DELIMITER $$
 CREATE PROCEDURE insertarCompra(
     IN p_fecha DATE
 )
-BEGIN 
+BEGIN
     DECLARE v_idCompra INT;
     DECLARE v_total DECIMAL(10,2);
 
     SELECT SUM(dc.cantidad * r.precio) INTO v_total
     FROM detallesComprasTemp dc
     INNER JOIN repuestos r ON dc.idRepuesto = r.idRepuesto;
-    
+
     INSERT INTO compras(fecha, total) VALUES (p_fecha, v_total);
-    
+
     SET v_idCompra = LAST_INSERT_ID();
     INSERT INTO detalles_compras(idCompra, idRepuesto, cantidad)
     SELECT v_idCompra, idRepuesto, cantidad FROM detallesComprasTemp;
@@ -478,6 +493,7 @@ BEGIN
 END $$
 DELIMITER ;
 ```
+
 ```sql
 CALL insertarCompra('2024-01-08');
 ```
@@ -496,9 +512,12 @@ DELIMITER ;
 
 CALL informe_inventario();
 ```
+
 ### Caso de Uso 6: Actualización Masiva de Precios
+
 Descripción: Este caso de uso describe cómo el sistema permite actualizar masivamente los
 precios de todas las bicicletas de una marca específica.
+
 ```sql
 DELIMITER $$
 CREATE PROCEDURE actualizaPrecioMarca(
@@ -516,6 +535,7 @@ DELIMITER ;
 CALL actualizaPrecioMarca(1,16.00);
 
 ```
+
 ### Caso de Uso 7: Generación de Reporte de Clientes por Ciudad
 
 ```sql
@@ -532,28 +552,32 @@ DELIMITER ;
 
 CALL clientes_ciudades();
 ```
+
 ### Caso de Uso 8: Verificación de Stock antes de Venta
+
 Descripción: Este caso de uso describe cómo el sistema verifica el stock de una bicicleta antes de
 permitir la venta.
+
 ```sql
 DELIMITER $$
-CREATE TRIGGER verificarStock 
+CREATE TRIGGER verificarStock
 BEFORE INSERT ON detalles_ventas
-FOR EACH ROW 
-BEGIN 
+FOR EACH ROW
+BEGIN
 	DECLARE v_stock INT;
-    
+
     SELECT stock INTO v_stock
     FROM bicicletas
     WHERE idBici = NEW.idBici;
-    
-    IF NEW.cantidad > v_stock THEN 
+
+    IF NEW.cantidad > v_stock THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'La cantidad solicitada excede el stock disponible';
     END IF;
 END $$
-DELIMITER ; 
+DELIMITER ;
 ```
+
 ### Caso de Uso 9: Registro de Devoluciones
 
 ```sql
@@ -569,15 +593,17 @@ DELIMITER ;
 
 CALL devolver(1);
 ```
+
 ### Caso de Uso 10: Generación de Reporte de Compras por Proveedor
+
 Descripción: Este caso de uso describe cómo el sistema genera un reporte de compras realizadas
 a un proveedor específico, mostrando todos los detalles de las compras.
 
 ```sql
 DELIMITER $$
 CREATE PROCEDURE comprasDetalladas()
-BEGIN 
-	SELECT c.idCompra, c.fecha, d.cantidad, r.nombre AS nombre_repuesto, 
+BEGIN
+	SELECT c.idCompra, c.fecha, d.cantidad, r.nombre AS nombre_repuesto,
     p.idProveedor, p.nombre AS nombre_proveedor, c.total
 	FROM compras c
 	INNER JOIN detalles_compras d ON c.idCompra = d.idCompra
@@ -623,24 +649,27 @@ DELIMITER ;
 
 CALL total_ventas_mes();
 ```
+
 ### Caso de Uso 2: Calcular el Promedio de Ventas por Cliente
+
 Descripción: Este caso de uso describe cómo el sistema calcula el promedio de ventas realizadas
 por un cliente específico.
+
 ```sql
 DELIMITER $$
 CREATE PROCEDURE promedioVentasClientes(
 	IN p_idCliente VARCHAR(10),
     OUT promedioVentas DECIMAL(10,2)
 )
-BEGIN 
+BEGIN
 
-	IF (SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN 
+	IF (SELECT COUNT(*) FROM clientes WHERE idCliente = p_idCliente) = 0 THEN
     SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'El cliente no existe';
     END IF;
-    
+
 	SELECT AVG(total) INTO promedioVentas
-    FROM ventas 
+    FROM ventas
     WHERE idcliente = p_idCliente;
 
 END $$
@@ -666,9 +695,12 @@ DELIMITER ;
 
 CALL ventas_rango_fecha('2023-01-10', '2023-05-10');
 ```
+
 ### Caso de Uso 4: Calcular el Total de Repuestos Comprados por Proveedor
+
 Descripción: Este caso de uso describe cómo el sistema calcula el total de repuestos comprados a
 un proveedor específico.
+
 ```sql
 DROP PROCEDURE IF EXISTS totalRepuestosProveedor;
 DELIMITER $$
@@ -696,6 +728,7 @@ CALL totalRepuestosProveedor('P002');
 
 
 ```
+
 ### Caso de Uso 5: Calcular el Ingreso Total por Año
 
 ```sql
@@ -710,9 +743,12 @@ DELIMITER ;
 
 CALL calcular_total_año();
 ```
+
 ### Caso de Uso 6: Calcular el Número de Clientes Activos en un Mes
+
 Descripción: Este caso de uso describe cómo el sistema cuenta el número de clientes que han
 realizado al menos una compra en un mes específico.
+
 ```sql
 DELIMITER $$
 CREATE PROCEDURE totalClientesActivosMesAño(
@@ -727,6 +763,7 @@ DELIMITER ;
 
 CALL totalClientesActivosMesAño(2024, 7);
 ```
+
 ### Caso de Uso 7: Calcular el Promedio de Compras por Proveedor
 
 ```sql
@@ -746,9 +783,12 @@ DELIMITER ;
 
 CALL promedio_proveedor();
 ```
+
 ### Caso de Uso 8: Calcular el Total de Ventas por Marca
+
 Descripción: Este caso de uso describe cómo el sistema calcula el total de ventas agrupadas por
 la marca de las bicicletas vendidas.
+
 ```sql
 DROP PROCEDURE IF EXISTS totalVentasPorMarca;
 DELIMITER $$
@@ -788,9 +828,12 @@ DELIMITER ;
 
 CALL promedio_precio_bici();
 ```
+
 ### Caso de Uso 10: Contar el Número de Repuestos por Proveedor
+
 Descripción: Este caso de uso describe cómo el sistema cuenta el número de repuestos
 suministrados por cada proveedor.
+
 ```sql
 DELIMITER $$
 
@@ -804,6 +847,7 @@ END $$
 DELIMITER ;
 CALL repuestoPorProveedor();
 ```
+
 ### Caso de Uso 11: Calcular el Total de Ingresos por Cliente
 
 ```sql
@@ -818,9 +862,12 @@ DELIMITER ;
 
 CALL total_ingresos_cliente();
 ```
+
 ### Caso de Uso 12: Calcular el Promedio de Compras Mensuales
+
 Descripción: Este caso de uso describe cómo el sistema calcula el promedio de compras
 realizadas mensualmente por todos los clientes.
+
 ```sql
 DROP PROCEDURE IF EXISTS promedioComprasMensuales;
 DELIMITER $$
@@ -838,6 +885,7 @@ DELIMITER ;
 
 CALL promedioComprasMensuales();
 ```
+
 ### Caso de Uso 13: Calcular el Total de Ventas por Día de la Semana
 
 ```sql
@@ -852,16 +900,19 @@ DELIMITER ;
 
 CALL total_dias();
 ```
+
 ### Caso de Uso 14: Contar el Número de Ventas por Categoría de Bicicleta
+
 Descripción: Este caso de uso describe cómo el sistema cuenta el número de ventas realizadas
 para cada categoría de bicicleta (por ejemplo, montaña, carretera, híbrida).
+
 ```sql
 DROP PROCEDURE IF EXISTS contarVentasPorCategoria;
 DELIMITER $$
 
 CREATE PROCEDURE contarVentasPorCategoria()
 BEGIN
-    SELECT 
+    SELECT
         m.nombre AS categoria,
         COUNT(d.idDetalle) AS total_ventas
     FROM ventas v
@@ -875,6 +926,7 @@ DELIMITER ;
 CALL contarVentasPorCategoria();
 
 ```
+
 ### Caso de Uso 15: Calcular el Total de Ventas por Año y Mes
 
 ```sql
